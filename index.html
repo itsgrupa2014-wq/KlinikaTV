@@ -74,3 +74,39 @@ async function updateTicker(){let names=[];try{names=await ndV2();}catch{try{nam
 </script>
 </body>
 </html>
+
+<script>
+// --- Nameday: pilna gada fallback no GitHub raw (CORS OK) ---
+async function ndLocalJSONFromGitHub(useExtended = false) {
+  const url = useExtended
+    ? "https://raw.githubusercontent.com/slikts/vardadienas/master/data/namedays-extended.json"
+    : "https://raw.githubusercontent.com/slikts/vardadienas/master/data/namedays.json";
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error("Local JSON status " + res.status);
+  const map = await res.json(); // { "MM-DD": ["Vārds", ...] }
+  const now = new Date();
+  const key = String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
+  return map[key] || [];
+}
+
+// Atjauno updateTicker, lai izmantotu šo fallback:
+async function updateTicker(){
+  let names = [];
+  try { 
+    names = await ndV2();              // abalin V2 (GET)
+  } catch {
+    try { 
+      names = await ndV1();            // abalin V1 (POST)
+    } catch {
+      try {
+        names = await ndLocalJSONFromGitHub(false);  // pamata saraksts
+      } catch {
+        names = [];                     // pēdējais rezerves variants
+      }
+    }
+  }
+  const html = buildTicker(names);
+  document.getElementById('tk').innerHTML = html + html;
+}
+</script>
+
