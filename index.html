@@ -40,7 +40,12 @@ video{width:100%;height:100%;object-fit:cover;background:#000}
 
 <script>
 /* ========= IESTATĪJUMI ========= */
-
+const PLAYLIST = [
+  "video2.mp4",
+  "DermatoloÄ£ija.mp4",
+  "./media/video3.mp4",
+  "./media/video4.mp4"
+];
 
 const OPENWEATHER_API_KEY = "8c38215495b18f116d137cee7fb9d6f1"; // tava atslēga
 const LOCATION = { city: "Rīga", lat: 56.9496, lon: 24.1052 };
@@ -118,12 +123,7 @@ function buildTicker(names){
   const wx = lastWX?.main ? `Rīga: ${Math.round(lastWX.main.temp)}°C, ${lastWX.weather?.[0]?.description||""}` : "Rīga: —";
   return ` • <strong>${ds}</strong> • ${wx} • Šodien vārda diena: <strong>${nd}</strong> • `;
 }
-const PLAYLIST = [
-  "video2.mp4",
-  "DermatoloÄ£ija.mp4",
-  "./media/video3.mp4",
-  "./media/video4.mp4"
-];
+
 async function updateTicker(){
   let names=[];
   try { names = await ndV2(); }
