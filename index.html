@@ -110,3 +110,13 @@ async function updateTicker(){
 }
 </script>
 
+function buildTicker(names){
+  const ds = new Date().toLocaleDateString('lv-LV',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const nd = names.length ? names.join(", ") : "—";
+  const wx = (lastWX && lastWX.main)
+    ? `Rīga: ${Math.round(lastWX.main.temp)}°C, ${lastWX.weather?.[0]?.description || ""}`
+    : "Rīga: —";
+  return ` • <strong>${ds}</strong> • ${wx} • Šodien vārda diena: <strong>${nd}</strong> • `;
+}
+
+
