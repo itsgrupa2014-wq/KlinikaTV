@@ -117,12 +117,21 @@ function getLocalNameday(){
   return LV_NAMEDAYS[`${mm}-${dd}`] || [];
 }
 
+
 function buildTicker(names){
-  const ds = new Date().toLocaleDateString('lv-LV',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const ds = new Date().toLocaleDateString(
+    'lv-LV',
+    { weekday:'long', year:'numeric', month:'long', day:'numeric' }
+  );
   const nd = names.length ? names.join(", ") : "—";
-  const wx = lastWX?.main ? `Rīga: ${Math.round(lastWX.main.temp)}°C, ${lastWX.weather?.[0]?.description||""}` : "Rīga: —";
+  const wx = (lastWX && lastWX.main)
+    ? `Rīga: ${Math.round(lastWX.main.temp)}°C, ${lastWX.weather?.[0]?.description || ""}`
+    : "Rīga: —";
+
+  // ⬇️ Šeit ir īsti <strong> tagi, nevis &lt;strong&gt; ...
   return ` • <strong>${ds}</strong> • ${wx} • Šodien vārda diena: <strong>${nd}</strong> • `;
 }
+
 
 async function updateTicker(){
   let names=[];
