@@ -1,210 +1,103 @@
-<!DOCTYPE html>
-<html lang="lv">
-<head>
-  <meta charset="utf-8" />
-  <meta http-equiv="Cache-Control" content="no-store" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Klīnika TV</title>
-  <style>
-    :root {
-      --bar-height: 90px;
-      --bg: #0b1220;
-      --fg: #ffffff;
-      --accent: #28a6ff;
-      --muted: #a9b3c7;
-      --danger: #ff6b6b;
-      --ticker-speed: 35s;
-    }
-    html, body { height: 100%; margin: 0; background:#000; color:var(--fg);
-      font-family: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans","Liberation Sans",sans-serif; }
-    .wrap { position:fixed; inset:0; display:grid; grid-template-rows: 1fr var(--bar-height); overflow:hidden; }
-    .stage { position:relative; background:#000; }
-    video { width:100%; height:100%; object-fit:cover; background:#000; }
-    .bar { position:relative; display:grid; grid-template-columns: 360px 1fr 380px; gap:16px; align-items:center;
-      height:var(--bar-height); padding:10px 16px; background:#0b1220; border-top:1px solid rgba(255,255,255,.08); }
-    .date-time { display:flex; flex-direction:column; line-height:1.2; }
-    .date-time .time { font-size:28px; font-weight:700; letter-spacing:.5px; }
-    .date-time .date { font-size:14px; color:var(--muted); margin-top:2px; }
-    .ticker { position:relative; overflow:hidden; white-space:nowrap; height:100%; }
-    .ticker .track { position:absolute; display:inline-block; white-space:nowrap; animation: scroll var(--ticker-speed) linear infinite; font-size:20px; }
-    .ticker strong { color:var(--accent); }
-    @keyframes scroll { from { transform: translateX(100%);} to { transform: translateX(-100%);} }
-    .weather { display:grid; grid-template-columns:56px 1fr; align-items:center; gap:12px; justify-self:end; }
-    .weather .temp { font-size:26px; font-weight:700; }
-    .weather .desc { font-size:14px; color:var(--muted); text-transform:capitalize; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.08); font-size:12px; margin-left:8px; color:var(--muted); }
-    .logo { position:absolute; top:14px; left:14px; z-index:2; padding:6px 10px; font-size:12px; background:rgba(0,0,0,.35);
-      border:1px solid rgba(255,255,255,.1); border-radius:6px; }
-    .error { color:var(--danger); }
-    .hint { font-size:12px; color:var(--muted); }
-    @media (max-width:1100px){ .bar{grid-template-columns: 300px 1fr 320px;} .ticker .track{font-size:18px;} }
-    @media (max-width:800px){ .bar{grid-template-columns:1fr; grid-auto-rows:auto; height:auto;} .weather{justify-self:start; margin-top:8px;} .ticker{height:44px;} }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="stage">
-      <!-- Logo nosaukums mainīts uz "Klīnika" -->
-      <div class="logo">Klīnika</div>
-      <video id="player" autoplay muted playsinline></video>
+<!DOCTYPE html><html lang="lv"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Klīnika TV</title>
+<style>
+:root{--bar:86px;--fg:#fff;--bg:#0b1220;--muted:#a9b3c7;--acc:#28a6ff;--speed:35s}
+html,body{height:100%;margin:0;background:#000;color:var(--fg);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif}
+.wrap{position:fixed;inset:0;display:grid;grid-template-rows:1fr var(--bar);overflow:hidden}
+.stage{position:relative;background:#000}
+video{width:100%;height:100%;object-fit:cover;background:#000}
+.logo{position:absolute;left:14px;top:14px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;font-size:12px}
+.bar{display:grid;grid-template-columns:300px 1fr 320px;gap:16px;align-items:center;height:var(--bar);padding:10px 16px;background:#0b1220;border-top:1px solid rgba(255,255,255,.08)}
+.time{font-weight:700;font-size:28px} .date{font-size:14px;color:var(--muted)}
+.ticker{position:relative;overflow:hidden;white-space:nowrap;height:100%}
+.track{position:absolute;display:inline-block;white-space:nowrap;animation:scroll var(--speed) linear infinite;font-size:20px}
+@keyframes scroll{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
+.ticker strong{color:var(--acc)}
+.weather{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:12px;justify-self:end}
+.temp{font-size:26px;font-weight:700}.desc{font-size:14px;color:var(--muted);text-transform:capitalize}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px;margin-left:8px;color:var(--muted)}
+@media(max-width:900px){.bar{grid-template-columns:1fr;height:auto}.weather{justify-self:start;margin-top:8px}.track{font-size:18px}}
+</style></head><body>
+<div class="wrap">
+  <div class="stage">
+    <div class="logo">Klīnika</div>
+    <video id="player" autoplay muted playsinline></video>
+  </div>
+  <div class="bar">
+    <div>
+      <div class="time" id="t">--:--</div>
+      <div class="date" id="d">—</div>
     </div>
-
-    <div class="bar">
-      <div class="date-time">
-        <div class="time" id="time">--:--</div>
-        <div class="date" id="date">--</div>
-        <div id="debugHint" class="hint"></div>
-      </div>
-
-      <div class="ticker">
-        <div class="track" id="tickerTrack">Ielādējas jaunākā informācija…</div>
-      </div>
-
-      <div class="weather" id="weatherBox">
-        <img id="wxIcon" alt="" width="56" height="56" />
-        <div>
-          <div class="temp">
-            <span id="wxTemp">--</span>°C <span class="pill" id="wxCity">Rīga</span>
-          </div>
-          <div class="desc" id="wxDesc">—</div>
-          <div id="wxErr" class="error" style="display:none;"></div>
-        </div>
+    <div class="ticker"><div class="track" id="tk">Ielādējas…</div></div>
+    <div class="weather">
+      <img id="wxI" width="56" height="56" alt=""/>
+      <div>
+        <div class="temp"><span id="wxT">--</span>°C <span class="pill" id="wxC">Rīga</span></div>
+        <div class="desc" id="wxD">—</div>
       </div>
     </div>
   </div>
+</div>
 
-  <script>
-    /******************** IESTATĪJUMI ********************/
-    const PLAYLIST = [
-      // Ievieto SAVUS HTTPS video URL:
-      "https://cdn.jsdelivr.net/gh/ajthinking/assets@master/video/pexels-city.mp4",
-      "https://cdn.jsdelivr.net/gh/ajthinking/assets@master/video/pexels-nature.mp4"
-    ];
-    const OPENWEATHER_API_KEY = "PA-MAINI-ŠEIT"; // ← ieliec savu atslēgu!
-    const LOCATION = { city: "Rīga", lat: 56.9496, lon: 24.1052 };
-    const REFRESH_WEATHER_MS = 10 * 60 * 1000;   // 10 min
-    const REFRESH_NAMEDAY_MS  =  6 * 60 * 60 * 1000; // 6 h
-    /*****************************************************/
+<script>
+/* === Iestatījumi (pielāgo, ja vajag) === */
+const PLAYLIST=[
+  "https://cdn.jsdelivr.net/gh/ajthinking/assets@master/video/pexels-city.mp4",
+  "https://cdn.jsdelivr.net/gh/ajthinking/assets@master/video/pexels-nature.mp4"
+];
+// Tava OWM atslēga (kā prasīji – ielikta šeit):
+const OPENWEATHER_API_KEY="8c38215495b18f116d137cee7fb9d6f1";
+const LOCATION={city:"Rīga",lat:56.9496,lon:24.1052};
+const WX_MS=10*60*1000, ND_MS=6*60*60*1000;
 
-    const debugHint = (msg) => { const el = document.getElementById('debugHint'); el.textContent = msg || ""; };
+/* Datums/Laiks */
+function clock(){const n=new Date();
+  document.getElementById('t').textContent=n.toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
+  const ds=n.toLocaleDateString('lv-LV',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('d').textContent=ds.charAt(0).toUpperCase()+ds.slice(1);
+} clock(); setInterval(clock,1000);
 
-    // Datums/Laiks
-    function updateClock() {
-      const now = new Date();
-      document.getElementById('time').textContent = now.toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
-      const date = now.toLocaleDateString('lv-LV',{ weekday:'long', year:'numeric', month:'long', day:'numeric' });
-      document.getElementById('date').textContent = date.charAt(0).toUpperCase()+date.slice(1);
-    }
-    updateClock(); setInterval(updateClock, 1000);
+/* Video plejliste */
+(function(){const v=document.getElementById('player'); let i=0;
+  function play(k){i=k%PLAYLIST.length; v.src=PLAYLIST[i]; v.load(); v.play().catch(()=>{});}
+  ["ended","stalled","error"].forEach(e=>v.addEventListener(e,()=>play(i+1))); play(0);
+})();
 
-    // Video plejliste
-    (function initVideo(){
-      const player = document.getElementById('player'); let i=0;
-      const play = idx => {
-        if(!PLAYLIST.length) return;
-        i = idx % PLAYLIST.length;
-        const src = PLAYLIST[i];
-        if(!src.startsWith('https://')) debugHint('⚠️ Video URL vēlams HTTPS, citādi pārlūks var bloķēt (mixed content).');
-        player.src = src; player.load();
-        player.play().catch(()=>{ /* LG TV var prasīt lietotāja mijiedarbību, bet ar muted parasti strādā */ });
-      };
-      ['ended','stalled','error'].forEach(ev => player.addEventListener(ev, ()=>play(i+1)));
-      play(0);
-    })();
+/* Laikapstākļi (OpenWeatherMap Current Weather) */
+async function fetchWX(){
+  const u=`https://api.openweathermap.org/data/2.5/weather?lat=${LOCATION.lat}&lon=${LOCATION.lon}&units=metric&lang=lv&appid=${OPENWEATHER_API_KEY}`;
+  const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw 0; return r.json();
+}
+function renderWX(x){
+  const t=Math.round(x.main?.temp??NaN), d=x.weather?.[0]?.description||"—", ic=x.weather?.[0]?.icon||"01d";
+  document.getElementById('wxT').textContent=isFinite(t)?t:"--";
+  document.getElementById('wxD').textContent=d;
+  document.getElementById('wxC').textContent=LOCATION.city;
+  document.getElementById('wxI').src=`https://openweathermap.org/img/wn/${ic}@2x.png`;
+  document.getElementById('wxI').alt=d;
+}
+let lastWX=null;
+async function updateWX(){ try{ lastWX=await fetchWX(); renderWX(lastWX);}catch(e){} }
+updateWX(); setInterval(updateWX, WX_MS);
 
-    // OpenWeatherMap (Current Weather) — nepieciešams API KEY
-    async function fetchWeather() {
-      const url = `https://api.openweathermap.org/data/2.5/weather?lat=${LOCATION.lat}&lon=${LOCATION.lon}&units=metric&lang=lv&appid=${OPENWEATHER_API_KEY}`;
-      const ctl = new AbortController();
-      const t = setTimeout(()=>ctl.abort(), 8000);
-      const res = await fetch(url, { cache:'no-store', signal: ctl.signal });
-      clearTimeout(t);
-      if(!res.ok) throw new Error("Weather API status "+res.status);
-      return res.json();
-    }
-    function renderWeather(wx) {
-      const temp = Math.round(wx.main?.temp ?? NaN);
-      document.getElementById('wxTemp').textContent = isFinite(temp) ? temp : '--';
-      const desc = wx.weather?.[0]?.description || '—';
-      document.getElementById('wxDesc').textContent = desc;
-      document.getElementById('wxCity').textContent = LOCATION.city;
-      const icon = wx.weather?.[0]?.icon || '01d';
-      document.getElementById('wxIcon').src = `https://openweathermap.org/img/wn/${icon}@2x.png`;
-      document.getElementById('wxIcon').alt = desc;
-      document.getElementById('wxErr').style.display = 'none';
-    }
-
-    // Nameday API — vispirms V2 (GET), tad V1 (POST) kā rezerve
-    async function fetchNamedayV2() {
-      const d = new Date();
-      const url = `https://nameday.abalin.net/api/v2/namedays?country=lv&month=${d.getMonth()+1}&day=${d.getDate()}`;
-      const res = await fetch(url, { cache:'no-store' });
-      if(!res.ok) throw new Error("Nameday V2 status "+res.status);
-      const j = await res.json();
-      // sagaidām formātu: { data: { names: [...] } }
-      const names = j?.data?.names || [];
-      return names;
-    }
-    async function fetchNamedayV1() {
-      const url = "https://nameday.abalin.net/api/V1/today";
-      const res = await fetch(url, { method:"POST", headers:{ "Content-Type":"application/json" }, body: JSON.stringify({ country:"lv" }) });
-      if(!res.ok) throw new Error("Nameday V1 status "+res.status);
-      const j = await res.json();
-      // V1 atgriež { nameday: { lv: "Vārds1, Vārds2" }, ... }
-      const s = j?.nameday?.lv || "";
-      return s.split(',').map(x=>x.trim()).filter(Boolean);
-    }
-
-    function buildTickerText({ namesLV, weather }) {
-      const dateStr = new Date().toLocaleDateString('lv-LV',{ weekday:'long', year:'numeric', month:'long', day:'numeric' });
-      const nameday = namesLV?.length ? namesLV.join(', ') : '—';
-      const temp = weather?.main ? Math.round(weather.main.temp) : null;
-      const wdesc = weather?.weather?.[0]?.description;
-      let parts = [];
-      parts.push(`<strong>${dateStr}</strong>`);
-      if (temp !== null) parts.push(`Rīga: ${temp}°C, ${wdesc || ''}`.trim());
-      parts.push(`Šodien vārda diena: <strong>${nameday}</strong>`);
-      return ' &nbsp;•&nbsp; ' + parts.join(' &nbsp;•&nbsp; ') + ' &nbsp;•&nbsp; ';
-    }
-
-    let lastWeather = null;
-    async function refreshTicker(names) {
-      const track = document.getElementById('tickerTrack');
-      const html = buildTickerText({ namesLV: names, weather: lastWeather });
-      track.innerHTML = html + html; // nepārtraukts ritējums
-    }
-
-    async function loadAll() {
-      // Laikapstākļi
-      try {
-        if(!OPENWEATHER_API_KEY || OPENWEATHER_API_KEY === "8c38215495b18f116d137cee7fb9d6f1
-") {
-          document.getElementById('wxErr').textContent = "⚠️ Ievadi OpenWeather API atslēgu!";
-          document.getElementById('wxErr').style.display = 'block';
-          debugHint("Padoms: izveido API atslēgu OpenWeatherMap un ieliec OPENWEATHER_API_KEY.");
-        } else {
-          const wx = await fetchWeather();
-          lastWeather = wx;
-          renderWeather(wx);
-        }
-      } catch(e) {
-        document.getElementById('wxErr').textContent = "Neizdevās ielādēt laikapstākļus";
-        document.getElementById('wxErr').style.display = 'block';
-        console.error(e);
-      }
-
-      // Vārda dienas
-      try {
-        let names = [];
-        try { names = await fetchNamedayV2(); }  // V2 GET
-        catch { names = await fetchNamedayV1(); } // V1 POST (rezerve)
-        await refreshTicker(names);
-      } catch(e) {
-        document.getElementById('tickerTrack').textContent = "Neizdevās ielādēt vārda dienas.";
-        console.error(e);
-      }
-    }
-
-    loadAll();
-    setInterval(async ()=>{
-      //
+/* Vārda dienas (Nameday API: V2 GET → V1 POST rezerve) */
+async function ndV2(){const n=new Date();
+  const r=await fetch(`https://nameday.abalin.net/api/v2/namedays?country=lv&month=${n.getMonth()+1}&day=${n.getDate()}`,{cache:'no-store'});
+  if(!r.ok) throw 0; const j=await r.json(); return j?.data?.names||[];
+}
+async function ndV1(){const r=await fetch("https://nameday.abalin.net/api/V1/today",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({country:"lv"})});
+  if(!r.ok) throw 0; const j=await r.json(); return String(j?.nameday?.lv||"").split(",").map(s=>s.trim()).filter(Boolean);
+}
+function tickerHTML(names){
+  const ds=new Date().toLocaleDateString('lv-LV',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const nd=names.length?names.join(", "):"—";
+  const part1=`<strong>${ds}</strong>`;
+  const part2= lastWX?.main ? `Rīga: ${Math.round(lastWX.main.temp)}°C, ${lastWX.weather?.[0]?.description||""}` : "";
+  const part3=`Šodien vārda diena: <strong>${nd}</strong>`;
+  return ` • ${part1} • ${part2} • ${part3} • `;
+}
+async function updateTicker(){
+  let names=[]; try{names=await ndV2();}catch{try{names=await ndV1();}catch{}}
+  const html=tickerHTML(names); const el=document.getElementById('tk'); el.innerHTML=html+html;
+}
+updateTicker(); setInterval(updateTicker, ND_MS);
+</script>
