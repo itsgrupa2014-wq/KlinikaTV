@@ -124,7 +124,12 @@ function buildTicker(names){
   const wx = lastWX?.main ? `Rīga: ${Math.round(lastWX.main.temp)}°C, ${lastWX.weather?.[0]?.description||""}` : "Rīga: —";
   return ` • <strong>${ds}</strong> • ${wx} • Šodien vārda diena: <strong>${nd}</strong> • `;
 }
-
+const PLAYLIST = [
+  "./media/video1.mp4",
+  "./media/video2.mp4",
+  "./media/video3.mp4",
+  "./media/video4.mp4"
+];
 async function updateTicker(){
   let names=[];
   try { names = await ndV2(); }
