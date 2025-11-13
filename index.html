@@ -15,43 +15,44 @@
     }
     *,*::before,*::after{ box-sizing:inherit; }
 
-    /* ===== Izkārtojums: GRID (video augšā 1fr, josla apakšā auto) ===== */
+    /* ===== Izkārtojums: GRID (video 1fr, josla auto) – nekas nepārklājas ===== */
     .wrap{
-      height:100svh;          /* modernajiem pārlūkiem */
-      height:100dvh;          /* dinamiskais viewport (ja pieejams) */
-      min-height:100vh;       /* rezerves variants */
+      height:100svh;           /* modernajiem pārlūkiem */
+      height:100dvh;           /* dinamiskais viewport (ja pieejams) */
+      min-height:100vh;        /* rezerves variants */
       width:100vw;
 
       display:grid;
-      grid-template-rows: 1fr auto;  /* <<< video aizņem visu brīvo augstumu */
+      grid-template-rows: 1fr auto;  /* video augšā, josla apakšā */
       grid-template-columns: 100%;
       background:#000;
 
-      /* drošībai pret iepriekšējo hotfix */
+      /* aizsargi pret iepriekšējiem risinājumiem */
       padding-bottom: 0 !important;
     }
 
     .stage{
-      min-height:0;           /* svarīgi, lai 1fr tiešām strādātu bez overflow */
+      min-height:0;            /* ļauj 1fr patiešām piegult */
       position:relative;
       contain: content;
       background:#000;
-      cursor:none;            /* kioska režīms */
+      cursor:none;             /* kioska režīms */
       touch-action:none;
-      /* NEDRĪKST būt nekāds fiksēts augstums vai calc(100vh - ...) */
+
+      /* jebkuru iepriekšējo augstumu atceļam */
       height:auto !important;
     }
 
     video{
       width:100%; height:100%;
-      object-fit:cover;       /* ja gribi bez apgriešanas: 'contain' */
+      object-fit:cover;        /* ja vajag bez apgriešanas → 'contain' */
       display:block; background:#000;
       backface-visibility:hidden; will-change:transform;
     }
 
-    /* ===== Apakšējā josla – plūsmā, nevis fixed ===== */
+    /* ===== Apakšējā josla – plūsmā (NE fixed) ===== */
     .bar{
-      position: static !important;   /* <<< izslēdz jebkuru fixed no veciem stiliem */
+      position: static !important;   /* pārraksta jebkuru veco 'fixed' */
       height:var(--bar);
       padding:10px 16px;
       background:#0b1220;
@@ -59,7 +60,7 @@
 
       display:grid; grid-template-columns:300px 1fr 320px;
       gap:16px; align-items:center;
-      z-index:auto !important;       /* noņem nevajadzīgu “virs satura” efektu */
+      z-index:auto !important;       /* nekas nav virs video */
     }
 
     .time{font-weight:700;font-size:28px;line-height:1}
@@ -117,7 +118,7 @@
 
 <script>
 /* ==================== IESTATĪJUMI ==================== */
-/* Tavi video – TĀ PAT tajā pašā mapē, kur index.html */
+/* Tavi video – TĀ PAT tajā pašā mapē, kur index.html (NEMAINU NOSAUKUMUS) */
 const PLAYLIST = [
   "video2.mp4",
   "DermatoloÄ£ija.mp4",
@@ -237,9 +238,8 @@ async function updateTicker(){
     catch { try { names = await ndLocalJSONFromGitHub(false); }
       catch { names = []; } } }
   const html = buildTicker(names);
-  document.getElementById('tk').innerHTML = html + html;
+  document.getElementById('tk').innerHTML = html + html; // dubults — nepārtraukts skrējiens
 }
 updateTicker(); setInterval(updateTicker, ND_MS);
 </script>
 </body>
-</html>
