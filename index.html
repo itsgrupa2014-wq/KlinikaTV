@@ -5,7 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Klīnika TV</title>
   <style>
-    :root{--bar:86px;--fg:#fff;--bg:#0b1220;--muted:#a9b3c7;--acc:#28a6ff;--speed:35s}
+    :root{
+      --bar:86px; --fg:#fff; --bg:#0b1220; --muted:#a9b3c7; --acc:#28a6ff; --speed:35s;
+    }
+
+    /* ===== Pamatstils ===== */
     html,body{
       height:100%; margin:0; background:#000; color:var(--fg);
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;
@@ -13,30 +17,34 @@
     }
     *,*::before,*::after{ box-sizing:inherit; }
 
-    /* ===== Izkārtojums – kā tev bija ===== */
-    .wrap{ height:100dvh; width:100vw; }
-
-    /* Video zonai rezervējam vietu (CSS līmenī) */
-    .stage{
-      height:calc(100dvh - var(--bar));
-      /* fallback, ja 100dvh nav atbalstīts: */
-      height:calc(100vh - var(--bar));
-      min-height:0;
+    /* ===== Izkārtojums TIEŠI uz body: 1fr (video) + auto (josla) ===== */
+    body{
+      display:grid !important;
+      grid-template-rows: 1fr auto !important;
+      grid-template-columns: 100%;
+      height:100svh; height:100dvh; min-height:100vh; width:100vw;
       background:#000;
-      contain: strict;
-      position: relative;
+    }
+
+    /* video konteiners aizņem 1fr rindu */
+    .stage{
+      min-height:0 !important;   /* kritiski, lai 1fr “nelūzt” */
+      position:relative; background:#000;
+      contain:content; cursor:none; touch-action:none;
+      height:auto !important;     /* nekādi calc(100vh - ...) vairs nav vajadzīgi */
     }
 
     video{
       width:100%; height:100%;
-      object-fit:cover;
-      background:#000; display:block;
+      object-fit:cover; display:block; background:#000;
       backface-visibility:hidden; will-change:transform;
     }
 
-    /* Apakšējā josla – fixed (tā, kā tev sākotnēji) */
+    /* ===== Apakšējā josla – plūsmā, NE fixed ===== */
     .bar{
-      position:fixed; left:0; right:0; bottom:0; z-index:10;
+      position:static !important;  /* pārraksta jebkuru iepriekšējo 'fixed' */
+      z-index:auto !important;
+
       height:var(--bar);
       padding:10px 16px;
       background:#0b1220;
@@ -45,14 +53,22 @@
       display:grid; grid-template-columns:300px 1fr 320px;
       gap:16px; align-items:center;
     }
-    .time{font-weight:700;font-size:28px}
+
+    .time{font-weight:700;font-size:28px;line-height:1}
     .date{font-size:14px;color:var(--muted)}
 
     .ticker{position:relative;overflow:hidden;white-space:nowrap;height:100%}
-    .track{position:absolute;display:inline-block;white-space:nowrap;
-      animation:scroll var(--speed) linear infinite;font-size:20px}
+    .track{
+      position:absolute;display:inline-block;white-space:nowrap;
+      animation:scroll var(--speed) linear infinite; font-size:20px; will-change:transform;
+    }
     @keyframes scroll{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
     .ticker strong{color:var(--acc)}
+
+    @media (prefers-reduced-motion: reduce){
+      .track{ animation:none; transform:none; position:static; }
+      .ticker{ overflow:visible; }
+    }
 
     .weather{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:12px;justify-self:end}
     .temp{font-size:26px;font-weight:700}
@@ -68,32 +84,32 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="stage">
-      <video id="player" autoplay muted playsinline></video>
+  <!-- Rinda #1 (1fr) -->
+  <div class="stage">
+    <video id="player" autoplay muted playsinline></video>
+  </div>
+
+  <!-- Rinda #2 (auto) -->
+  <div class="bar">
+    <div>
+      <div class="time" id="t">--:--</div>
+      <div class="date" id="d">—</div>
     </div>
 
-    <div class="bar">
+    <div class="ticker"><div class="track" id="tk">Ielādējas…</div></div>
+
+    <div class="weather">
+      <img id="wxI" width="56" height="56" alt=""/>
       <div>
-        <div class="time" id="t">--:--</div>
-        <div class="date" id="d">—</div>
-      </div>
-
-      <div class="ticker"><div class="track" id="tk">Ielādējas…</div></div>
-
-      <div class="weather">
-        <img id="wxI" width="56" height="56" alt=""/>
-        <div>
-          <div class="temp"><span id="wxT">--</span>°C <span class="pill" id="wxC">Rīga</span></div>
-          <div class="desc" id="wxD">—</div>
-        </div>
+        <div class="temp"><span id="wxT">--</span>°C <span class="pill" id="wxC">Rīga</span></div>
+        <div class="desc" id="wxD">—</div>
       </div>
     </div>
   </div>
 
 <script>
 /* ==================== IESTATĪJUMI ==================== */
-/* Tavi video – TĀ PAT tajā pašā mapē, kur index.html */
+/* Tavi video – TĀ PAT tajā pašā mapē, kur index.html (nemainu nosaukumus) */
 const PLAYLIST = [
   "video2.mp4",
   "DermatoloÄ£ija.mp4",
@@ -104,7 +120,7 @@ const PLAYLIST = [
 /* OWM atslēga: GitHub Pages režīmā lieto šo; Netlify režīmā vari atstāt "" */
 const OPENWEATHER_API_KEY = "8c38215495b18f116d137cee7fb9d6f1";
 const LOCATION = { city: "Rīga", lat: 56.9496, lon: 24.1052 };
-const WX_MS = 10 * 60 * 1000;     // laikapstākļi ik pēc 10 min
+const WX_MS = 10 * 60 * 1000;      // laikapstākļi ik pēc 10 min
 const ND_MS = 12 * 60 * 60 * 1000; // vārda dienas ik pēc 12 h
 
 /* ==================== PULKSTENIS ==================== */
@@ -120,9 +136,7 @@ clock(); setInterval(clock, 1000);
 (function initVideo(){
   const v = document.getElementById('player'); let i = 0;
 
-  function ensureFill(){
-    v.style.width='100%'; v.style.height='100%';
-  }
+  function ensureFill(){ v.style.width='100%'; v.style.height='100%'; }
 
   function play(k){
     if(!PLAYLIST.length) return;
@@ -141,9 +155,7 @@ clock(); setInterval(clock, 1000);
   play(0);
 })();
 
-/* ==================== LAIKAPSTĀKĻI ====================
-   1) /api/weather (Netlify — atslēga slēpta),
-   2) tiešs OWM (GitHub Pages). */
+/* ==================== LAIKAPSTĀKĻI ==================== */
 async function fetchWX_viaProxy(){
   const u = `/api/weather?lat=${LOCATION.lat}&lon=${LOCATION.lon}&lang=lv`;
   const r = await fetch(u, { cache:'no-store' });
@@ -168,14 +180,13 @@ function renderWX(wx){
   document.getElementById('wxT').textContent = isFinite(t) ? t : "--";
   document.getElementById('wxD').textContent = d;
   document.getElementById('wxC').textContent = LOCATION.city;
-  document.getElementById('wxI').src = `https://openweathermap.org/img/wn/${ic}@2x.png`; /* oficiālā OWM shēma */
+  document.getElementById('wxI').src = `https://openweathermap.org/img/wn/${ic}@2x.png`;
 }
 let lastWX=null;
 async function updateWX(){ try{ lastWX = await fetchWX(); renderWX(lastWX); } catch(_){} }
 updateWX(); setInterval(updateWX, WX_MS);
 
-/* ==================== VĀRDA DIENAS ====================
-   1) Abalin V2 -> 2) V1 -> 3) GitHub raw JSON (pilns gads) */
+/* ==================== VĀRDA DIENAS ==================== */
 async function ndV2(){
   const n=new Date();
   const r=await fetch(`https://nameday.abalin.net/api/v2/namedays?country=lv&month=${n.getMonth()+1}&day=${n.getDate()}`,{cache:'no-store'});
@@ -221,38 +232,6 @@ async function updateTicker(){
   document.getElementById('tk').innerHTML = html + html;
 }
 updateTicker(); setInterval(updateTicker, ND_MS);
-
-/* === NO‑OVERLAY ENFORCER ============================================
-   Dinamiski iestata .stage augstumu = viewportHeight - .bar augstums.
-   Strādā pat tad, ja .bar ir fixed un citur ir pretrunīgs CSS.
-   ================================================================== */
-(function noOverlay(){
-  const stage = document.querySelector('.stage');
-  const bar   = document.querySelector('.bar');
-
-  if(!stage || !bar) return;
-
-  function fit(){
-    const vh = (window.visualViewport && visualViewport.height)
-      ? Math.round(visualViewport.height)
-      : Math.round(window.innerHeight || document.documentElement.clientHeight || stage.clientHeight);
-
-    const barH = Math.round(bar.offsetHeight || 0);
-    const h = Math.max(0, vh - barH);
-
-    // Uzliekam augstumu ar !important, lai pārrakstītu jebkuru citu CSS
-    stage.style.setProperty('height', h + 'px', 'important');
-  }
-
-  // Iedarbinām
-  window.addEventListener('load', fit, { passive:true });
-  window.addEventListener('resize', fit, { passive:true });
-  window.addEventListener('orientationchange', fit, { passive:true });
-  document.addEventListener('visibilitychange', () => { if(!document.hidden) fit(); });
-
-  // Reizi pēc kadra, ja fonts/ikonas vēl ielādējas
-  requestAnimationFrame(() => setTimeout(fit, 0));
-})();
 </script>
 </body>
 </html>
