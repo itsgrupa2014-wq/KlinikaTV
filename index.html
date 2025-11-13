@@ -47,6 +47,29 @@
       .weather{justify-self:start; margin-top:8px}
       .track{font-size:18px}
     }
+/* ===== ANTIOVERLAY – garantē izkārtojumu plūsmā (nevis fixed) ===== */
+html, body { height:100% !important; }
+body{
+  display:grid !important;
+  grid-template-rows: 1fr auto !important; /* video augšā, josla apakšā */
+  grid-template-columns: 100%;
+  overflow:hidden; /* TV režīmam bez ritjoslām */
+}
+.stage{
+  height:auto !important;          /* atceļ calc(100vh-...) utt. */
+  min-height:0 !important;         /* ļauj 1fr strādāt */
+  position:relative;
+}
+.bar{
+  position:static !important;      /* NE fixed */
+  z-index:auto !important;
+}
+.stage > video{
+  width:100% !important;
+  height:100% !important;
+  object-fit:cover !important;
+  display:block;
+}
   </style>
 </head>
 
