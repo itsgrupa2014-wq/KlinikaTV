@@ -2,56 +2,66 @@
 <html lang="lv">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Klīnika TV</title>
   <style>
     :root{
       --bar:86px; --fg:#fff; --bg:#0b1220; --muted:#a9b3c7; --acc:#28a6ff; --speed:35s;
     }
 
-    /* Pamatstils */
-    html,body{
-      height:100%; margin:0; background:#000; color:var(--fg);
+    /* Pamatbāze: 100% augstumi -> drošs pret UI pārklāšanos */
+    html, body{
+      height:100%;
+      margin:0;
+      background:#000;
+      color:var(--fg);
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;
-      overflow:hidden; box-sizing:border-box;
+      box-sizing:border-box;
+      overflow:hidden; /* mēs negribam ritjoslas uz TV */
     }
     *,*::before,*::after{ box-sizing:inherit; }
 
-    /* ===== Izkārtojums TIEŠI uz body: video (1fr) + josla (auto) ===== */
+    /* Izkārtojums: 2 rindas – video (1fr) + josla (auto) */
     body{
-      display:grid !important;
-      grid-template-rows: 1fr auto !important;
+      display:grid;
+      grid-template-rows: 1fr auto;   /* video augšā, josla apakšā */
       grid-template-columns: 100%;
-      height:100svh; height:100dvh; min-height:100vh; width:100vw;
-      background:#000;
+      min-height:100%;                 /* svarīgi: balstāmies uz % nevis vh */
     }
 
-    /* Video zona – ieņem 1fr rindu */
+    /* Video rinda: nekādi fixed augstumi/calc; Grid pats atstāj vietu joslai */
     .stage{
-      min-height:0 !important;            /* kritiski, lai 1fr strādā */
-      height:auto !important;             /* nekādu calc(...) */
-      position:relative; background:#000;
-      contain:content; cursor:none; touch-action:none;
+      min-height:0;                    /* nepieļauj “satura izstumšanu” */
+      position:relative;
+      background:#000;
+      contain:content;
+      cursor:none;                     /* kioska režīms */
+      touch-action:none;
     }
 
     video{
-      width:100%; height:100%;
-      object-fit:cover; display:block; background:#000;
-      backface-visibility:hidden; will-change:transform;
+      width:100%;
+      height:100%;
+      object-fit:cover;                /* aizpilda visu piešķirto rāmi */
+      display:block;
+      background:#000;
+      backface-visibility:hidden;
+      will-change:transform;
     }
 
-    /* ===== Apakšējā josla – PLŪSMĀ, NE fixed ===== */
-    #bar{
-      position:static !important;         /* pārspēj jebkuru “fixed” */
-      z-index:auto !important;
-
+    /* Apakšējā josla – PLŪSMĀ (NE fixed) */
+    .bar{
+      position:static;                 /* garantēti nav fixed */
       height:var(--bar);
       padding:10px 16px;
       background:#0b1220;
       border-top:1px solid rgba(255,255,255,.08);
 
-      display:grid; grid-template-columns:300px 1fr 320px;
-      gap:16px; align-items:center;
+      display:grid;
+      grid-template-columns:300px 1fr 320px;
+      gap:16px;
+      align-items:center;
+      z-index:auto;
     }
 
     .time{font-weight:700;font-size:28px;line-height:1}
@@ -60,7 +70,9 @@
     .ticker{position:relative;overflow:hidden;white-space:nowrap;height:100%}
     .track{
       position:absolute;display:inline-block;white-space:nowrap;
-      animation:scroll var(--speed) linear infinite; font-size:20px; will-change:transform;
+      animation:scroll var(--speed) linear infinite;
+      font-size:20px;
+      will-change:transform;
     }
     @keyframes scroll{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
     .ticker strong{color:var(--acc)}
@@ -70,27 +82,32 @@
       .ticker{ overflow:visible; }
     }
 
-    .weather{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:12px;justify-self:end}
+    .weather{
+      display:grid;grid-template-columns:56px 1fr;
+      align-items:center;gap:12px;justify-self:end
+    }
     .temp{font-size:26px;font-weight:700}
     .desc{font-size:14px;color:var(--muted);text-transform:capitalize}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08);
-      font-size:12px;margin-left:8px;color:var(--muted)}
+    .pill{
+      display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08);
+      font-size:12px;margin-left:8px;color:var(--muted)
+    }
 
     @media(max-width:900px){
-      #bar{grid-template-columns:1fr; height:auto}
+      .bar{grid-template-columns:1fr; height:auto}
       .weather{justify-self:start; margin-top:8px}
       .track{font-size:18px}
     }
   </style>
 </head>
 <body>
-  <!-- Rinda #1 (1fr) -->
+  <!-- RINDA #1: VIDEO -->
   <div class="stage">
     <video id="player" autoplay muted playsinline></video>
   </div>
 
-  <!-- Rinda #2 (auto) -->
-  <div class="bar" id="bar">
+  <!-- RINDA #2: APAKŠĒJĀ JOSLA -->
+  <div class="bar">
     <div>
       <div class="time" id="t">--:--</div>
       <div class="date" id="d">—</div>
@@ -109,7 +126,7 @@
 
 <script>
 /* ==================== IESTATĪJUMI ==================== */
-/* Plejliste – atstāju tieši kā tev: */
+/* Video nosaukumus atstāju tieši tādus, kā iedevi */
 const PLAYLIST = [
   "video2.mp4",
   "DermatoloÄ£ija.mp4",
@@ -125,16 +142,20 @@ const ND_MS = 12 * 60 * 60 * 1000;
 /* ==================== PULKSTENIS ==================== */
 function clock() {
   const n = new Date();
-  document.getElementById('t').textContent = n.toLocaleTimeString('lv-LV',{hour:'2-digit',minute:'2-digit'});
-  const ds = n.toLocaleDateString('lv-LV',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  document.getElementById('d').textContent = ds.charAt(0).toUpperCase()+ds.slice(1);
+  document.getElementById('t').textContent =
+    n.toLocaleTimeString('lv-LV', { hour:'2-digit', minute:'2-digit' });
+  const ds = n.toLocaleDateString('lv-LV',
+    { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  document.getElementById('d').textContent = ds.charAt(0).toUpperCase() + ds.slice(1);
 }
 clock(); setInterval(clock, 1000);
 
 /* ==================== VIDEO PLEJLISTE ==================== */
 (function initVideo(){
   const v = document.getElementById('player'); let i = 0;
+
   function ensureFill(){ v.style.width='100%'; v.style.height='100%'; }
+
   function play(k){
     if(!PLAYLIST.length) return;
     i = k % PLAYLIST.length;
@@ -145,7 +166,8 @@ clock(); setInterval(clock, 1000);
     v.addEventListener('loadedmetadata', onMeta);
     v.load();
   }
-  ['ended','stalled','error'].forEach(e=>v.addEventListener(e,()=>play(i+1)));
+
+  ['ended','stalled','error'].forEach(e => v.addEventListener(e, () => play(i+1)));
   play(0);
 })();
 
