@@ -6,23 +6,35 @@
   <title>Klīnika TV</title>
   <style>
     :root{--bar:86px;--fg:#fff;--bg:#0b1220;--muted:#a9b3c7;--acc:#28a6ff;--speed:35s}
-    html,body{height:100%;margin:0;background:#000;color:var(--fg);
-      font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif}
-
-    /* Pilnekrāna video virs fiksētās apakšējās joslas */
-    .wrap{position:fixed; inset:0;}
-    .stage{
-      position:absolute; left:0; right:0; top:0; bottom:var(--bar);
-      background:#000; z-index:0;
+    html,body{
+      height:100%; margin:0; background:#000; color:var(--fg);
+      font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;
+      overflow:hidden; /* nekāda ritināšana */
     }
-    video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#000}
 
+    /* GRID: 1) video zona  2) apakšējā josla ar fiksētu augstumu */
+    .wrap{
+      position:fixed; inset:0;
+      display:grid; grid-template-rows: 1fr var(--bar);
+    }
+
+    /* VIDEO zona aizņem visu pirmo rindu */
+    .stage{ position:relative; background:#000; }
+    video{
+      position:absolute; inset:0;
+      width:100%; height:100%;
+      object-fit:cover; background:#000;
+    }
+
+    /* APAKŠĒJĀ JOSLA — sava rinda (NEKAD nav virs video) */
     .bar{
-      position:fixed; left:0; right:0; bottom:0; z-index:10;
-      height:var(--bar); padding:10px 16px;
-      background:#0b1220; border-top:1px solid rgba(255,255,255,.08);
-      display:grid; grid-template-columns:300px 1fr 320px; gap:16px; align-items:center;
+      display:grid; grid-template-columns:300px 1fr 320px;
+      gap:16px; align-items:center;
+      padding:10px 16px;
+      background:#0b1220;
+      border-top:1px solid rgba(255,255,255,.08);
     }
+
     .time{font-weight:700;font-size:28px}
     .date{font-size:14px;color:var(--muted)}
 
@@ -47,10 +59,12 @@
 </head>
 <body>
   <div class="wrap">
+    <!-- 1. Rinda: VIDEO -->
     <div class="stage">
       <video id="player" autoplay muted playsinline></video>
     </div>
 
+    <!-- 2. Rinda: APAKŠĒJĀ JOSLA -->
     <div class="bar">
       <div>
         <div class="time" id="t">--:--</div>
@@ -71,15 +85,16 @@
 
 <script>
 /* ==================== IESTATĪJUMI ==================== */
-/* Tavi video atrodas tajā pašā mapē kā index.html — šeit paliek TAVAS vērtības: */
+/* TAVI video — tajā pašā mapē, kur index.html */
 const PLAYLIST = [
   "video2.mp4",
-  "DermatoloÄ£ija.mp4",      // ja iespējams, vēlāk pārsauc uz 'dermatologija.mp4' (ASCII)
+  "DermatoloÄ£ija.mp4",      // ja vēlāk varēsi, iesaku pārsaukt uz 'dermatologija.mp4' (ASCII)
   "Videoadm123.mp4",
   "Bariatriskaendoskopija.mp4"
 ];
 
-const OPENWEATHER_API_KEY = "8c38215495b18f116d137cee7fb9d6f1"; // GitHub Pages režīmā izmantos šo
+/* OWM atslēga: GitHub Pages režīmā izmanto tiešo; Netlify režīmā vari atstāt tukšu ("") */
+const OPENWEATHER_API_KEY = "8c38215495b18f116d137cee7fb9d6f1";
 const LOCATION = { city: "Rīga", lat: 56.9496, lon: 24.1052 };
 const WX_MS = 10 * 60 * 1000;     // laikapstākļi ik pēc 10 min
 const ND_MS = 12 * 60 * 60 * 1000; // vārda dienas ik pēc 12 h
@@ -96,14 +111,24 @@ clock(); setInterval(clock, 1000);
 /* ==================== VIDEO PLEJLISTE ==================== */
 (function initVideo(){
   const v = document.getElementById('player'); let i = 0;
+
+  // iOS/Samsung stabilitātei palīdz atjaunot dimensijas, kad mainās avots
+  function ensureFill(){ v.style.width='100%'; v.style.height='100%'; }
+
   function play(k){
     if(!PLAYLIST.length) return;
     i = k % PLAYLIST.length;
-    v.src = PLAYLIST[i];      // ceļš ir relatīvs pret index.html – tātad tajā pašā mapē
+    v.pause();
+    v.removeAttribute('src'); // notīram, lai pārlūks nepatur iepriekšējo
     v.load();
-    v.play().catch(()=>{ /* autoplay mutēts – parasti ok uz TV */});
+    v.src = PLAYLIST[i];
+    ensureFill();
+    v.load();
+    v.play().catch(()=>{ /* autoplay mutēts – ok */});
   }
-  ["ended","stalled","error"].forEach(e=>v.addEventListener(e,()=>play(i+1)));
+
+  v.addEventListener('loadedmetadata', ensureFill);
+  ['ended','stalled','error'].forEach(e=>v.addEventListener(e,()=>play(i+1)));
   play(0);
 })();
 
