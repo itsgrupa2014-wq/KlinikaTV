@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Klīnika TV</title>
   <style>
-    :root{
-      --bar:86px; --fg:#fff; --bg:#0b1220; --muted:#a9b3c7; --acc:#28a6ff; --speed:35s;
-    }
+    :root{--bar:86px;--fg:#fff;--bg:#0b1220;--muted:#a9b3c7;--acc:#28a6ff;--speed:35s}
     html,body{
       height:100%; margin:0; background:#000; color:var(--fg);
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;
@@ -15,39 +13,31 @@
     }
     *,*::before,*::after{ box-sizing:inherit; }
 
-    /* ===== Izkārtojums: GRID ar 2 rindām (1fr video + auto josla) ===== */
-    .wrap{
-      /* Stabils uz desktop + webOS: */
-      height:100svh;          /* modernajiem pārlūkiem */
-      height:100dvh;          /* dinamisks viewport (ja pieejams pārraksta svh) */
-      min-height:100vh;       /* rezerves variants */
-      width:100vw;
+    /* ===== Izkārtojums – vienkāršs un TV‑drošs ===== */
+    .wrap{ height:100dvh; width:100vw; }
 
-      display:grid;
-      grid-template-rows: 1fr auto;  /* <<— video ieņem visu brīvo augstumu, josla apakšā */
-      grid-template-columns: 100%;
-      background:#000;
-    }
-
+    /* Video zonai rezervējam vietu: agrāk bija calc(100dvh - var(--bar)) */
     .stage{
-      min-height:0;           /* ļauj video patiešām ieņemt 1fr bez piespiedu pārsnieguma */
-      position:relative;
-      contain:content;
+      /* HOTFIX: ar fixed joslu vietu rezervē .wrap padding-bottom, tāpēc te pietiek ar 100vh/dvh */
+      height:100dvh;            /* moderns viewport augstums */
+      height:100vh;             /* rezerves variants */
+      min-height:0;
       background:#000;
-      cursor:none;            /* kioska režīms */
-      touch-action:none;
-      /* NO height: calc(100vh - var(--bar));  — nav vajadzīgs ar Grid */
+      contain: strict;          /* neļauj iekšējam saturam ietekmēt ārpusi */
+      position: relative;
     }
 
     video{
       width:100%; height:100%;
-      object-fit:cover;       /* ja gribi bez apgriešanas: 'contain' */
-      display:block; background:#000;
+      object-fit:cover;         /* ja gribi bez kadrēšanas → ‘contain’ */
+      background:#000; display:block;
       backface-visibility:hidden; will-change:transform;
     }
 
-    /* Josla vairs NAV fixed — tā dzīvo savā Grid rindā un nepārklājas */
+    /* Apakšējā josla – fiksēta pie apakšas */
     .bar{
+      position:fixed; left:0; right:0; bottom:0; z-index:10;
+      height:var(--bar);
       padding:10px 16px;
       background:#0b1220;
       border-top:1px solid rgba(255,255,255,.08);
@@ -56,27 +46,28 @@
       gap:16px; align-items:center;
     }
 
-    .time{font-weight:700;font-size:28px;line-height:1}
+    /* ===== HOTFIX papildinājums: rezervē vietu joslai ===== */
+    .wrap { padding-bottom: var(--bar); }
+
+    .time{font-weight:700;font-size:28px}
     .date{font-size:14px;color:var(--muted)}
 
     .ticker{position:relative;overflow:hidden;white-space:nowrap;height:100%}
-    .track{
-      position:absolute;display:inline-block;white-space:nowrap;
-      animation:scroll var(--speed) linear infinite; font-size:20px; will-change:transform;
-    }
+    .track{position:absolute;display:inline-block;white-space:nowrap;
+      animation:scroll var(--speed) linear infinite;font-size:20px}
     @keyframes scroll{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
     .ticker strong{color:var(--acc)}
-
-    @media (prefers-reduced-motion: reduce){
-      .track{ animation:none; transform:none; position:static; }
-      .ticker{ overflow:visible; }
-    }
 
     .weather{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:12px;justify-self:end}
     .temp{font-size:26px;font-weight:700}
     .desc{font-size:14px;color:var(--muted);text-transform:capitalize}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08);
       font-size:12px;margin-left:8px;color:var(--muted)}
+
+    @media (prefers-reduced-motion: reduce){
+      .track{ animation:none; transform:none; position:static; }
+      .ticker{ overflow:visible; }
+    }
 
     @media(max-width:900px){
       .bar{grid-template-columns:1fr; height:auto}
@@ -111,7 +102,7 @@
 
 <script>
 /* ==================== IESTATĪJUMI ==================== */
-/* Atstāšu failu nosaukumus tieši kā iedevi — bez pārdēvēšanas */
+/* Tavi video – TĀ PAT tajā pašā mapē, kur index.html */
 const PLAYLIST = [
   "video2.mp4",
   "DermatoloÄ£ija.mp4",
@@ -119,10 +110,11 @@ const PLAYLIST = [
   "Bariatriskaendoskopija.mp4"
 ];
 
+/* OWM atslēga: GitHub Pages režīmā lieto šo; Netlify režīmā vari atstāt "" */
 const OPENWEATHER_API_KEY = "8c38215495b18f116d137cee7fb9d6f1";
 const LOCATION = { city: "Rīga", lat: 56.9496, lon: 24.1052 };
-const WX_MS = 10 * 60 * 1000;
-const ND_MS = 12 * 60 * 60 * 1000;
+const WX_MS = 10 * 60 * 1000;     // laikapstākļi ik pēc 10 min
+const ND_MS = 12 * 60 * 60 * 1000; // vārda dienas ik pēc 12 h
 
 /* ==================== PULKSTENIS ==================== */
 function clock() {
@@ -137,14 +129,21 @@ clock(); setInterval(clock, 1000);
 (function initVideo(){
   const v = document.getElementById('player'); let i = 0;
 
-  function ensureFill(){ v.style.width='100%'; v.style.height='100%'; }
+  // Uz dažiem TV pārlūkiem palīdz “reflow” pēc source maiņas
+  function ensureFill(){
+    v.style.width='100%'; v.style.height='100%';
+  }
 
   function play(k){
     if(!PLAYLIST.length) return;
     i = k % PLAYLIST.length;
+
     v.pause();
+    // Notīrām iepriekšējo, tad uzliekam jauno src (mazāk “lēkāšanas”)
     v.removeAttribute('src'); v.load();
     v.src = PLAYLIST[i];
+
+    // Kad meta dati ielādēti, nodrošinam pareizu aizpildi
     const onMeta = () => { ensureFill(); v.play().catch(()=>{}); v.removeEventListener('loadedmetadata', onMeta); };
     v.addEventListener('loadedmetadata', onMeta);
     v.load();
@@ -154,7 +153,9 @@ clock(); setInterval(clock, 1000);
   play(0);
 })();
 
-/* ==================== LAIKAPSTĀKĻI ==================== */
+/* ==================== LAIKAPSTĀKĻI ====================
+   1) /api/weather (Netlify — atslēga slēpta),
+   2) tiešs OWM (GitHub Pages). */
 async function fetchWX_viaProxy(){
   const u = `/api/weather?lat=${LOCATION.lat}&lon=${LOCATION.lon}&lang=lv`;
   const r = await fetch(u, { cache:'no-store' });
@@ -168,7 +169,10 @@ async function fetchWX_direct(){
   if(!r.ok) throw new Error("owm " + r.status);
   return r.json();
 }
-async function fetchWX(){ try { return await fetchWX_viaProxy(); } catch { return await fetchWX_direct(); } }
+async function fetchWX(){
+  try { return await fetchWX_viaProxy(); }
+  catch { return await fetchWX_direct(); }
+}
 function renderWX(wx){
   const t = Math.round(wx.main?.temp ?? NaN);
   const d = wx.weather?.[0]?.description || "—";
@@ -176,13 +180,14 @@ function renderWX(wx){
   document.getElementById('wxT').textContent = isFinite(t) ? t : "--";
   document.getElementById('wxD').textContent = d;
   document.getElementById('wxC').textContent = LOCATION.city;
-  document.getElementById('wxI').src = `https://openweathermap.org/img/wn/${ic}@2x.png`;
+  document.getElementById('wxI').src = `https://openweathermap.org/img/wn/${ic}@2x.png`; /* oficiālā OWM shēma */
 }
 let lastWX=null;
 async function updateWX(){ try{ lastWX = await fetchWX(); renderWX(lastWX); } catch(_){} }
 updateWX(); setInterval(updateWX, WX_MS);
 
-/* ==================== VĀRDA DIENAS ==================== */
+/* ==================== VĀRDA DIENAS ====================
+   1) Abalin V2 -> 2) V1 -> 3) GitHub raw JSON (pilns gads) */
 async function ndV2(){
   const n=new Date();
   const r=await fetch(`https://nameday.abalin.net/api/v2/namedays?country=lv&month=${n.getMonth()+1}&day=${n.getDate()}`,{cache:'no-store'});
@@ -230,3 +235,4 @@ async function updateTicker(){
 updateTicker(); setInterval(updateTicker, ND_MS);
 </script>
 </body>
+</html>
