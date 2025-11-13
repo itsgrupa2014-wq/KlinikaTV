@@ -9,47 +9,41 @@
     html,body{
       height:100%; margin:0; background:#000; color:var(--fg);
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;
-      overflow:hidden; /* nav ritināšanas */
-      box-sizing:border-box;
+      overflow:hidden; box-sizing:border-box;
     }
     *,*::before,*::after{ box-sizing:inherit; }
 
-    /* ====== GRID DIAGRAM ======
-       .wrap (100dvh)
-       ┌──────────────────────────┐
-       │ 1. rinda: .stage  (1fr)  │  ← video zona (NE pārklājas ar joslu)
-       ├──────────────────────────┤
-       │ 2. rinda: .bar   (auto)  │  ← apakšējā josla
-       └──────────────────────────┘
-    */
-    .wrap{
-      height:100dvh;          /* drošs viewport mobilajos/TV */
-      display:grid;
-      grid-template-rows: 1fr auto;
-      grid-template-columns: 100%;
-    }
+    /* ===== Izkārtojums – vienkāršs un TV‑drošs ===== */
+    .wrap{ height:100dvh; width:100vw; }
 
-    /* VIDEO rinda */
+    /* Video zonai rezervējam vietu: 100dvh - joslas augstums */
     .stage{
-      min-height:0;           /* kritiski, lai bērni nedrīkst “izspiest” rindu */
-      display:grid;           /* ļaujam video izstiepties 100% rindiņā */
-    }
-    video{
-      width:100%;
-      height:100%;
-      object-fit:cover;       /* aizpilda visu laukumu bez melnām malām */
+      height:calc(100dvh - var(--bar));
+      /* fallback, ja 100dvh nav atbalstīts: */
+      height:calc(100vh - var(--bar));
+      min-height:0;
       background:#000;
-      display:block;          /* noņem inline artefaktus */
+      contain: strict;        /* neļauj iekšējam saturam ietekmēt ārpusi */
+      position: relative;
     }
 
-    /* APAKŠĒJĀ JOSLA (sava rinda, nevis overlay) */
+    video{
+      width:100%; height:100%;
+      object-fit:cover;       /* aizpilda visu laukumu; ja gribi bez kadrēšanas → ‘contain’ */
+      background:#000; display:block;
+      backface-visibility:hidden; will-change:transform;
+    }
+
+    /* Apakšējā josla – fiksēta pie apakšas, bet video zonai vieta jau “izgriezta” ar calc() */
     .bar{
-      display:grid;
-      grid-template-columns:300px 1fr 320px;
-      gap:16px; align-items:center;
+      position:fixed; left:0; right:0; bottom:0; z-index:10;
+      height:var(--bar);
       padding:10px 16px;
       background:#0b1220;
       border-top:1px solid rgba(255,255,255,.08);
+
+      display:grid; grid-template-columns:300px 1fr 320px;
+      gap:16px; align-items:center;
     }
     .time{font-weight:700;font-size:28px}
     .date{font-size:14px;color:var(--muted)}
@@ -67,7 +61,7 @@
       font-size:12px;margin-left:8px;color:var(--muted)}
 
     @media(max-width:900px){
-      .bar{grid-template-columns:1fr; }
+      .bar{grid-template-columns:1fr; height:auto}
       .weather{justify-self:start; margin-top:8px}
       .track{font-size:18px}
     }
@@ -75,12 +69,10 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 1. rinda: VIDEO -->
     <div class="stage">
       <video id="player" autoplay muted playsinline></video>
     </div>
 
-    <!-- 2. rinda: APAKŠĒJĀ JOSLA -->
     <div class="bar">
       <div>
         <div class="time" id="t">--:--</div>
@@ -98,14 +90,13 @@
       </div>
     </div>
   </div>
-  
-  
+
 <script>
 /* ==================== IESTATĪJUMI ==================== */
-/* TAVI video – tajā pašā mapē, kur index.html (pats rakstīji, ka tā ir) */
+/* Tavi video – TĀ PAT tajā pašā mapē, kur index.html */
 const PLAYLIST = [
   "video2.mp4",
-  "DermatoloÄ£ija.mp4",      // (ja vēlāk vari, iesaku pārsaukt uz ASCII – dermatologija.mp4)
+  "DermatoloÄ£ija.mp4",
   "Videoadm123.mp4",
   "Bariatriskaendoskopija.mp4"
 ];
@@ -129,23 +120,26 @@ clock(); setInterval(clock, 1000);
 (function initVideo(){
   const v = document.getElementById('player'); let i = 0;
 
-  // drošībai: notīram src pirms maiņas un pēc loadedmetadata atjaunojam aizpildi
-  function fill(){ v.style.width='100%'; v.style.height='100%'; }
+  // Uz dažiem TV pārlūkiem palīdz “reflow” pēc source maiņas
+  function ensureFill(){
+    v.style.width='100%'; v.style.height='100%';
+  }
 
   function play(k){
     if(!PLAYLIST.length) return;
     i = k % PLAYLIST.length;
 
     v.pause();
-    v.removeAttribute('src');
-    v.load();
-
+    // Notīrām iepriekšējo, tad uzliekam jauno src (mazāk “lēkāšanas”)
+    v.removeAttribute('src'); v.load();
     v.src = PLAYLIST[i];
+
+    // Kad meta dati ielādēti, nodrošinam pareizu aizpildi
+    const onMeta = () => { ensureFill(); v.play().catch(()=>{}); v.removeEventListener('loadedmetadata', onMeta); };
+    v.addEventListener('loadedmetadata', onMeta);
     v.load();
-    v.play().then(fill).catch(()=>{ /* autoplay muted */ });
   }
 
-  v.addEventListener('loadedmetadata', fill);
   ['ended','stalled','error'].forEach(e=>v.addEventListener(e,()=>play(i+1)));
   play(0);
 })();
@@ -177,7 +171,7 @@ function renderWX(wx){
   document.getElementById('wxT').textContent = isFinite(t) ? t : "--";
   document.getElementById('wxD').textContent = d;
   document.getElementById('wxC').textContent = LOCATION.city;
-  document.getElementById('wxI').src = `https://openweathermap.org/img/wn/${ic}@2x.png`;
+  document.getElementById('wxI').src = `https://openweathermap.org/img/wn/${ic}@2x.png`; /* oficiālā OWM shēma */
 }
 let lastWX=null;
 async function updateWX(){ try{ lastWX = await fetchWX(); renderWX(lastWX); } catch(_){} }
@@ -232,3 +226,4 @@ async function updateTicker(){
 updateTicker(); setInterval(updateTicker, ND_MS);
 </script>
 </body>
+</html>
