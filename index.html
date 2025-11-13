@@ -13,30 +13,35 @@
     }
     *,*::before,*::after{ box-sizing:inherit; }
 
-    /* ===== Izkārtojums – vienkāršs un TV‑drošs ===== */
-    .wrap{ height:100dvh; width:100vw; }
+    /* ===== Izkārtojums (FLEX kolonna) – josla NEPĀRKLĀJ video ===== */
+    .wrap{
+      height:100svh;          /* modernajiem pārlūkiem */
+      height:100dvh;          /* dinamisks viewport */
+      min-height:100vh;       /* rezerves variants */
+      width:100vw;
+      display:flex; flex-direction:column;   /* <<— galvenā izmaiņa */
+      background:#000;
+    }
 
-    /* Video zonai rezervējam vietu: 100dvh - joslas augstums */
+    /* Video zona aizņem visu brīvo vietu virs joslas */
     .stage{
-      height:calc(100dvh - var(--bar));
-      /* fallback, ja 100dvh nav atbalstīts: */
-      height:calc(100vh - var(--bar));
+      flex:1 1 auto;          /* <<— galvenā izmaiņa: nevis calc(), bet elastīga zona */
       min-height:0;
       background:#000;
-      contain: strict;        /* neļauj iekšējam saturam ietekmēt ārpusi */
+      contain: strict;
       position: relative;
+      cursor:none; touch-action:none;
     }
 
     video{
       width:100%; height:100%;
-      object-fit:cover;       /* aizpilda visu laukumu; ja gribi bez kadrēšanas → ‘contain’ */
+      object-fit:cover;
       background:#000; display:block;
       backface-visibility:hidden; will-change:transform;
     }
 
-    /* Apakšējā josla – fiksēta pie apakšas, bet video zonai vieta jau “izgriezta” ar calc() */
+    /* Apakšējā josla tagad ir plūsmā, bez fixed – tā neaizsedz video */
     .bar{
-      position:fixed; left:0; right:0; bottom:0; z-index:10;
       height:var(--bar);
       padding:10px 16px;
       background:#0b1220;
@@ -50,9 +55,14 @@
 
     .ticker{position:relative;overflow:hidden;white-space:nowrap;height:100%}
     .track{position:absolute;display:inline-block;white-space:nowrap;
-      animation:scroll var(--speed) linear infinite;font-size:20px}
+      animation:scroll var(--speed) linear infinite;font-size:20px; will-change:transform}
     @keyframes scroll{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
     .ticker strong{color:var(--acc)}
+
+    @media (prefers-reduced-motion: reduce){
+      .track{ animation:none; transform:none; position:static; }
+      .ticker{ overflow:visible; }
+    }
 
     .weather{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:12px;justify-self:end}
     .temp{font-size:26px;font-weight:700}
@@ -94,6 +104,7 @@
 <script>
 /* ==================== IESTATĪJUMI ==================== */
 /* Tavi video – TĀ PAT tajā pašā mapē, kur index.html */
+/* !!! Nekādas pārdēvēšanas—atstāju tieši tā, kā iedevi. */
 const PLAYLIST = [
   "video2.mp4",
   "DermatoloÄ£ija.mp4",
@@ -120,7 +131,6 @@ clock(); setInterval(clock, 1000);
 (function initVideo(){
   const v = document.getElementById('player'); let i = 0;
 
-  // Uz dažiem TV pārlūkiem palīdz “reflow” pēc source maiņas
   function ensureFill(){
     v.style.width='100%'; v.style.height='100%';
   }
@@ -130,11 +140,9 @@ clock(); setInterval(clock, 1000);
     i = k % PLAYLIST.length;
 
     v.pause();
-    // Notīrām iepriekšējo, tad uzliekam jauno src (mazāk “lēkāšanas”)
     v.removeAttribute('src'); v.load();
     v.src = PLAYLIST[i];
 
-    // Kad meta dati ielādēti, nodrošinam pareizu aizpildi
     const onMeta = () => { ensureFill(); v.play().catch(()=>{}); v.removeEventListener('loadedmetadata', onMeta); };
     v.addEventListener('loadedmetadata', onMeta);
     v.load();
@@ -171,7 +179,7 @@ function renderWX(wx){
   document.getElementById('wxT').textContent = isFinite(t) ? t : "--";
   document.getElementById('wxD').textContent = d;
   document.getElementById('wxC').textContent = LOCATION.city;
-  document.getElementById('wxI').src = `https://openweathermap.org/img/wn/${ic}@2x.png`; /* oficiālā OWM shēma */
+  document.getElementById('wxI').src = `https://openweathermap.org/img/wn/${ic}@2x.png`;
 }
 let lastWX=null;
 async function updateWX(){ try{ lastWX = await fetchWX(); renderWX(lastWX); } catch(_){} }
