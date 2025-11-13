@@ -9,7 +9,7 @@
       --bar:86px; --fg:#fff; --bg:#0b1220; --muted:#a9b3c7; --acc:#28a6ff; --speed:35s;
     }
 
-    /* ===== Pamatstils ===== */
+    /* Pamatstils */
     html,body{
       height:100%; margin:0; background:#000; color:var(--fg);
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;
@@ -17,7 +17,7 @@
     }
     *,*::before,*::after{ box-sizing:inherit; }
 
-    /* ===== Izkārtojums TIEŠI uz body: 1fr (video) + auto (josla) ===== */
+    /* ===== Izkārtojums TIEŠI uz body: video (1fr) + josla (auto) ===== */
     body{
       display:grid !important;
       grid-template-rows: 1fr auto !important;
@@ -26,12 +26,12 @@
       background:#000;
     }
 
-    /* video konteiners aizņem 1fr rindu */
+    /* Video zona – ieņem 1fr rindu */
     .stage{
-      min-height:0 !important;   /* kritiski, lai 1fr “nelūzt” */
+      min-height:0 !important;            /* kritiski, lai 1fr strādā */
+      height:auto !important;             /* nekādu calc(...) */
       position:relative; background:#000;
       contain:content; cursor:none; touch-action:none;
-      height:auto !important;     /* nekādi calc(100vh - ...) vairs nav vajadzīgi */
     }
 
     video{
@@ -40,9 +40,9 @@
       backface-visibility:hidden; will-change:transform;
     }
 
-    /* ===== Apakšējā josla – plūsmā, NE fixed ===== */
-    .bar{
-      position:static !important;  /* pārraksta jebkuru iepriekšējo 'fixed' */
+    /* ===== Apakšējā josla – PLŪSMĀ, NE fixed ===== */
+    #bar{
+      position:static !important;         /* pārspēj jebkuru “fixed” */
       z-index:auto !important;
 
       height:var(--bar);
@@ -77,7 +77,7 @@
       font-size:12px;margin-left:8px;color:var(--muted)}
 
     @media(max-width:900px){
-      .bar{grid-template-columns:1fr; height:auto}
+      #bar{grid-template-columns:1fr; height:auto}
       .weather{justify-self:start; margin-top:8px}
       .track{font-size:18px}
     }
@@ -90,7 +90,7 @@
   </div>
 
   <!-- Rinda #2 (auto) -->
-  <div class="bar">
+  <div class="bar" id="bar">
     <div>
       <div class="time" id="t">--:--</div>
       <div class="date" id="d">—</div>
@@ -109,7 +109,7 @@
 
 <script>
 /* ==================== IESTATĪJUMI ==================== */
-/* Tavi video – TĀ PAT tajā pašā mapē, kur index.html (nemainu nosaukumus) */
+/* Plejliste – atstāju tieši kā tev: */
 const PLAYLIST = [
   "video2.mp4",
   "DermatoloÄ£ija.mp4",
@@ -117,11 +117,10 @@ const PLAYLIST = [
   "Bariatriskaendoskopija.mp4"
 ];
 
-/* OWM atslēga: GitHub Pages režīmā lieto šo; Netlify režīmā vari atstāt "" */
 const OPENWEATHER_API_KEY = "8c38215495b18f116d137cee7fb9d6f1";
 const LOCATION = { city: "Rīga", lat: 56.9496, lon: 24.1052 };
-const WX_MS = 10 * 60 * 1000;      // laikapstākļi ik pēc 10 min
-const ND_MS = 12 * 60 * 60 * 1000; // vārda dienas ik pēc 12 h
+const WX_MS = 10 * 60 * 1000;
+const ND_MS = 12 * 60 * 60 * 1000;
 
 /* ==================== PULKSTENIS ==================== */
 function clock() {
@@ -135,22 +134,17 @@ clock(); setInterval(clock, 1000);
 /* ==================== VIDEO PLEJLISTE ==================== */
 (function initVideo(){
   const v = document.getElementById('player'); let i = 0;
-
   function ensureFill(){ v.style.width='100%'; v.style.height='100%'; }
-
   function play(k){
     if(!PLAYLIST.length) return;
     i = k % PLAYLIST.length;
-
     v.pause();
     v.removeAttribute('src'); v.load();
     v.src = PLAYLIST[i];
-
     const onMeta = () => { ensureFill(); v.play().catch(()=>{}); v.removeEventListener('loadedmetadata', onMeta); };
     v.addEventListener('loadedmetadata', onMeta);
     v.load();
   }
-
   ['ended','stalled','error'].forEach(e=>v.addEventListener(e,()=>play(i+1)));
   play(0);
 })();
@@ -169,10 +163,7 @@ async function fetchWX_direct(){
   if(!r.ok) throw new Error("owm " + r.status);
   return r.json();
 }
-async function fetchWX(){
-  try { return await fetchWX_viaProxy(); }
-  catch { return await fetchWX_direct(); }
-}
+async function fetchWX(){ try { return await fetchWX_viaProxy(); } catch { return await fetchWX_direct(); } }
 function renderWX(wx){
   const t = Math.round(wx.main?.temp ?? NaN);
   const d = wx.weather?.[0]?.description || "—";
@@ -212,7 +203,6 @@ async function ndLocalJSONFromGitHub(useExtended=false){
   const key = String(now.getMonth()+1).padStart(2,"0") + "-" + String(now.getDate()).padStart(2,"0");
   return map[key] || [];
 }
-
 function buildTicker(names){
   const ds = new Date().toLocaleDateString('lv-LV',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   const nd = names.length ? names.join(", ") : "—";
@@ -221,7 +211,6 @@ function buildTicker(names){
     : "Rīga: —";
   return ` • <strong>${ds}</strong> • ${wx} • Šodien vārda diena: <strong>${nd}</strong> • `;
 }
-
 async function updateTicker(){
   let names=[];
   try { names = await ndV2(); }
