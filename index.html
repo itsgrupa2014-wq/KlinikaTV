@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Klīnika TV</title>
   <style>
-    :root{--bar:86px;--fg:#fff;--bg:#0b1220;--muted:#a9b3c7;--acc:#28a6ff;--speed:35s}
+    :root{
+      --bar:86px; --fg:#fff; --bg:#0b1220; --muted:#a9b3c7; --acc:#28a6ff; --speed:35s;
+    }
     html,body{
       height:100%; margin:0; background:#000; color:var(--fg);
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;
@@ -13,36 +15,39 @@
     }
     *,*::before,*::after{ box-sizing:inherit; }
 
-    /* ===== Izkārtojums (FLEX kolonna) – josla NEPĀRKLĀJ video ===== */
+    /* ===== Izkārtojums: GRID ar 2 rindām (1fr video + auto josla) ===== */
     .wrap{
+      /* Stabils uz desktop + webOS: */
       height:100svh;          /* modernajiem pārlūkiem */
-      height:100dvh;          /* dinamisks viewport */
+      height:100dvh;          /* dinamisks viewport (ja pieejams pārraksta svh) */
       min-height:100vh;       /* rezerves variants */
       width:100vw;
-      display:flex; flex-direction:column;   /* <<— galvenā izmaiņa */
+
+      display:grid;
+      grid-template-rows: 1fr auto;  /* <<— video ieņem visu brīvo augstumu, josla apakšā */
+      grid-template-columns: 100%;
       background:#000;
     }
 
-    /* Video zona aizņem visu brīvo vietu virs joslas */
     .stage{
-      flex:1 1 auto;          /* <<— galvenā izmaiņa: nevis calc(), bet elastīga zona */
-      min-height:0;
+      min-height:0;           /* ļauj video patiešām ieņemt 1fr bez piespiedu pārsnieguma */
+      position:relative;
+      contain:content;
       background:#000;
-      contain: strict;
-      position: relative;
-      cursor:none; touch-action:none;
+      cursor:none;            /* kioska režīms */
+      touch-action:none;
+      /* NO height: calc(100vh - var(--bar));  — nav vajadzīgs ar Grid */
     }
 
     video{
       width:100%; height:100%;
-      object-fit:cover;
-      background:#000; display:block;
+      object-fit:cover;       /* ja gribi bez apgriešanas: 'contain' */
+      display:block; background:#000;
       backface-visibility:hidden; will-change:transform;
     }
 
-    /* Apakšējā josla tagad ir plūsmā, bez fixed – tā neaizsedz video */
+    /* Josla vairs NAV fixed — tā dzīvo savā Grid rindā un nepārklājas */
     .bar{
-      height:var(--bar);
       padding:10px 16px;
       background:#0b1220;
       border-top:1px solid rgba(255,255,255,.08);
@@ -50,12 +55,15 @@
       display:grid; grid-template-columns:300px 1fr 320px;
       gap:16px; align-items:center;
     }
-    .time{font-weight:700;font-size:28px}
+
+    .time{font-weight:700;font-size:28px;line-height:1}
     .date{font-size:14px;color:var(--muted)}
 
     .ticker{position:relative;overflow:hidden;white-space:nowrap;height:100%}
-    .track{position:absolute;display:inline-block;white-space:nowrap;
-      animation:scroll var(--speed) linear infinite;font-size:20px; will-change:transform}
+    .track{
+      position:absolute;display:inline-block;white-space:nowrap;
+      animation:scroll var(--speed) linear infinite; font-size:20px; will-change:transform;
+    }
     @keyframes scroll{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
     .ticker strong{color:var(--acc)}
 
@@ -103,8 +111,7 @@
 
 <script>
 /* ==================== IESTATĪJUMI ==================== */
-/* Tavi video – TĀ PAT tajā pašā mapē, kur index.html */
-/* !!! Nekādas pārdēvēšanas—atstāju tieši tā, kā iedevi. */
+/* Atstāšu failu nosaukumus tieši kā iedevi — bez pārdēvēšanas */
 const PLAYLIST = [
   "video2.mp4",
   "DermatoloÄ£ija.mp4",
@@ -112,11 +119,10 @@ const PLAYLIST = [
   "Bariatriskaendoskopija.mp4"
 ];
 
-/* OWM atslēga: GitHub Pages režīmā lieto šo; Netlify režīmā vari atstāt "" */
 const OPENWEATHER_API_KEY = "8c38215495b18f116d137cee7fb9d6f1";
 const LOCATION = { city: "Rīga", lat: 56.9496, lon: 24.1052 };
-const WX_MS = 10 * 60 * 1000;     // laikapstākļi ik pēc 10 min
-const ND_MS = 12 * 60 * 60 * 1000; // vārda dienas ik pēc 12 h
+const WX_MS = 10 * 60 * 1000;
+const ND_MS = 12 * 60 * 60 * 1000;
 
 /* ==================== PULKSTENIS ==================== */
 function clock() {
@@ -131,18 +137,14 @@ clock(); setInterval(clock, 1000);
 (function initVideo(){
   const v = document.getElementById('player'); let i = 0;
 
-  function ensureFill(){
-    v.style.width='100%'; v.style.height='100%';
-  }
+  function ensureFill(){ v.style.width='100%'; v.style.height='100%'; }
 
   function play(k){
     if(!PLAYLIST.length) return;
     i = k % PLAYLIST.length;
-
     v.pause();
     v.removeAttribute('src'); v.load();
     v.src = PLAYLIST[i];
-
     const onMeta = () => { ensureFill(); v.play().catch(()=>{}); v.removeEventListener('loadedmetadata', onMeta); };
     v.addEventListener('loadedmetadata', onMeta);
     v.load();
@@ -152,9 +154,7 @@ clock(); setInterval(clock, 1000);
   play(0);
 })();
 
-/* ==================== LAIKAPSTĀKĻI ====================
-   1) /api/weather (Netlify — atslēga slēpta),
-   2) tiešs OWM (GitHub Pages). */
+/* ==================== LAIKAPSTĀKĻI ==================== */
 async function fetchWX_viaProxy(){
   const u = `/api/weather?lat=${LOCATION.lat}&lon=${LOCATION.lon}&lang=lv`;
   const r = await fetch(u, { cache:'no-store' });
@@ -168,10 +168,7 @@ async function fetchWX_direct(){
   if(!r.ok) throw new Error("owm " + r.status);
   return r.json();
 }
-async function fetchWX(){
-  try { return await fetchWX_viaProxy(); }
-  catch { return await fetchWX_direct(); }
-}
+async function fetchWX(){ try { return await fetchWX_viaProxy(); } catch { return await fetchWX_direct(); } }
 function renderWX(wx){
   const t = Math.round(wx.main?.temp ?? NaN);
   const d = wx.weather?.[0]?.description || "—";
@@ -185,8 +182,7 @@ let lastWX=null;
 async function updateWX(){ try{ lastWX = await fetchWX(); renderWX(lastWX); } catch(_){} }
 updateWX(); setInterval(updateWX, WX_MS);
 
-/* ==================== VĀRDA DIENAS ====================
-   1) Abalin V2 -> 2) V1 -> 3) GitHub raw JSON (pilns gads) */
+/* ==================== VĀRDA DIENAS ==================== */
 async function ndV2(){
   const n=new Date();
   const r=await fetch(`https://nameday.abalin.net/api/v2/namedays?country=lv&month=${n.getMonth()+1}&day=${n.getDate()}`,{cache:'no-store'});
@@ -234,4 +230,3 @@ async function updateTicker(){
 updateTicker(); setInterval(updateTicker, ND_MS);
 </script>
 </body>
-</html>
