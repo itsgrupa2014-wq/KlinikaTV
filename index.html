@@ -9,17 +9,14 @@
     html,body{height:100%;margin:0;background:#000;color:var(--fg);
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif}
 
-    /* Viewport audekls */
+    /* Pilnekrāna video virs fiksētās apakšējās joslas */
     .wrap{position:fixed; inset:0;}
-
-    /* VIDEO zona aizņem visu ekrānu līdz apakšējai joslai */
     .stage{
       position:absolute; left:0; right:0; top:0; bottom:var(--bar);
       background:#000; z-index:0;
     }
     video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; background:#000}
 
-    /* Apakšējā josla — fiksēta, neaizklāj video */
     .bar{
       position:fixed; left:0; right:0; bottom:0; z-index:10;
       height:var(--bar); padding:10px 16px;
@@ -74,26 +71,18 @@
 
 <script>
 /* ==================== IESTATĪJUMI ==================== */
-/* IESAKU Failu nosaukumus bez diakritikas/atstarpēm un ar HTTPS (GitHub/Dropbox/Backblaze B2). */
+/* Tavi video atrodas tajā pašā mapē kā index.html — šeit paliek TAVAS vērtības: */
 const PLAYLIST = [
-  // Ja video ir repo mapē ./media/ :
-  // "./media/video2.mp4",
-  // "./media/dermatologija.mp4",
-  // "./media/videoadm123.mp4",
-  // "./media/bariatriskaendoskopija.mp4"
-
-  /* Kamēr testē: ielieku publiskus paraugus; nomaini uz saviem! */
-  "https://cdn.jsdelivr.net/gh/ajthinking/assets@master/video/pexels-city.mp4",
-  "https://cdn.jsdelivr.net/gh/ajthinking/assets@master/video/pexels-nature.mp4",
-  "https://cdn.jsdelivr.net/gh/ajthinking/assets@master/video/pexels-water.mp4",
-  "https://cdn.jsdelivr.net/gh/ajthinking/assets@master/video/pexels-sky.mp4"
+  "video2.mp4",
+  "DermatoloÄ£ija.mp4",      // ja iespējams, vēlāk pārsauc uz 'dermatologija.mp4' (ASCII)
+  "Videoadm123.mp4",
+  "Bariatriskaendoskopija.mp4"
 ];
 
-/* Ja DEPOJI uz Netlify ar serverless funkciju /api/weather, vari ATSTĀT TUKŠU: ""  */
-const OPENWEATHER_API_KEY = "8c38215495b18f116d137cee7fb9d6f1"; // <- tava atslēga (GitHub Pages režīmam)
+const OPENWEATHER_API_KEY = "8c38215495b18f116d137cee7fb9d6f1"; // GitHub Pages režīmā izmantos šo
 const LOCATION = { city: "Rīga", lat: 56.9496, lon: 24.1052 };
 const WX_MS = 10 * 60 * 1000;     // laikapstākļi ik pēc 10 min
-const ND_MS = 12 * 60 * 60 * 1000; // vārda dienas ik pēc 12h
+const ND_MS = 12 * 60 * 60 * 1000; // vārda dienas ik pēc 12 h
 
 /* ==================== PULKSTENIS ==================== */
 function clock() {
@@ -110,18 +99,17 @@ clock(); setInterval(clock, 1000);
   function play(k){
     if(!PLAYLIST.length) return;
     i = k % PLAYLIST.length;
-    v.src = PLAYLIST[i];
+    v.src = PLAYLIST[i];      // ceļš ir relatīvs pret index.html – tātad tajā pašā mapē
     v.load();
-    v.play().catch(()=>{ /* autoplay var tikt bloķēts tikai ar skaņu; muted jau ir */});
+    v.play().catch(()=>{ /* autoplay mutēts – parasti ok uz TV */});
   }
   ["ended","stalled","error"].forEach(e=>v.addEventListener(e,()=>play(i+1)));
   play(0);
 })();
 
 /* ==================== LAIKAPSTĀKĻI ====================
-   1) Mēģina /api/weather (Netlify serverless — atslēga slēpta).
-   2) Ja nav -> tiešs OpenWeather endpoint ar atslēgu (GitHub Pages).
-   OWM Current Weather docs: /data/2.5/weather; ikonas: /img/wn/{icon}@2x.png  */
+   1) Mēģina /api/weather (Netlify — atslēga slēpta).
+   2) Ja nav -> tiešs OpenWeather endpoint ar atslēgu (GitHub Pages). */
 async function fetchWX_viaProxy(){
   const u = `/api/weather?lat=${LOCATION.lat}&lon=${LOCATION.lon}&lang=lv`;
   const r = await fetch(u, { cache:'no-store' });
@@ -146,14 +134,14 @@ function renderWX(wx){
   document.getElementById('wxT').textContent = isFinite(t) ? t : "--";
   document.getElementById('wxD').textContent = d;
   document.getElementById('wxC').textContent = LOCATION.city;
-  document.getElementById('wxI').src = `https://openweathermap.org/img/wn/${ic}@2x.png`; /* OWM ikonu shēma */
+  document.getElementById('wxI').src = `https://openweathermap.org/img/wn/${ic}@2x.png`;
 }
 let lastWX=null;
 async function updateWX(){ try{ lastWX = await fetchWX(); renderWX(lastWX); } catch(_){} }
 updateWX(); setInterval(updateWX, WX_MS);
 
 /* ==================== VĀRDA DIENAS ====================
-   1) Abalin Nameday API V2 (GET) -> 2) V1 (POST) -> 3) pilna gada JSON no GitHub raw. */
+   1) Abalin V2 (GET) -> 2) V1 (POST) -> 3) GitHub raw JSON (pilns gads) */
 async function ndV2(){
   const n=new Date();
   const r=await fetch(`https://nameday.abalin.net/api/v2/namedays?country=lv&month=${n.getMonth()+1}&day=${n.getDate()}`,{cache:'no-store'});
@@ -168,7 +156,7 @@ async function ndV1(){
   const j=await r.json();
   return String(j?.nameday?.lv||"").split(",").map(s=>s.trim()).filter(Boolean);
 }
-/* Pilna gada fallback no GitHub raw (CORS OK) — {"MM-DD": ["Vārds",...]} */
+/* Pilna gada fallback no GitHub raw (CORS OK): {"MM-DD": ["Vārds",...]} */
 async function ndLocalJSONFromGitHub(useExtended = false) {
   const url = useExtended
     ? "https://raw.githubusercontent.com/slikts/vardadienas/master/data/namedays-extended.json"
@@ -194,10 +182,10 @@ async function updateTicker(){
   let names=[];
   try { names = await ndV2(); }
   catch { try { names = await ndV1(); }
-    catch { try { names = await ndLocalJSONFromGitHub(false); } // pamata saraksts (vai true — paplašinātais)
+    catch { try { names = await ndLocalJSONFromGitHub(false); }
       catch { names = []; } } }
   const html = buildTicker(names);
-  document.getElementById('tk').innerHTML = html + html;  // nepārtraukts ritējums
+  document.getElementById('tk').innerHTML = html + html;
 }
 updateTicker(); setInterval(updateTicker, ND_MS);
 </script>
