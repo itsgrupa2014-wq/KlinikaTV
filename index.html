@@ -79,7 +79,25 @@
     <div class="stage">
       <video id="player" autoplay muted playsinline></video>
     </div>
+/* --- LG/WebOS drošības papildinājumi --- */
+.wrap { position: relative; }
+.stage, .bar { position: relative; z-index: 0; }
+.stage { z-index: 1; }                   /* video rinda priekšplānā */
 
+.bar {
+  position: static !important;           /* aizsardzība pret fixed/sticky */
+  transform: none !important;            /* ja kāds JS uzlicis transform */
+}
+
+/* Ja 100dvh nav pieejams, krītam atpakaļ uz 100vh */
+@supports not (height: 100dvh) {
+  .wrap { height: 100vh; }
+}
+
+/* TV/mobīlie: pārliecināmies, ka konteineri ir pilnā augstumā */
+@media (hover:none) and (pointer:coarse) {
+  html, body { height: 100%; }
+}
     <!-- 2. rinda: APAKŠĒJĀ JOSLA -->
     <div class="bar">
       <div>
