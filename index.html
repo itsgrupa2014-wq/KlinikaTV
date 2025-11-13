@@ -9,7 +9,7 @@
       --bar:86px; --fg:#fff; --bg:#0b1220; --muted:#a9b3c7; --acc:#28a6ff; --speed:35s;
     }
 
-    /* Pamatbāze: 100% augstumi -> drošs pret UI pārklāšanos */
+    /* Pamatbāze: % augstumi, nevis vh */
     html, body{
       height:100%;
       margin:0;
@@ -17,62 +17,17 @@
       color:var(--fg);
       font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;
       box-sizing:border-box;
-      overflow:hidden; /* mēs negribam ritjoslas uz TV */
+      overflow:hidden; /* TV režīmam bez ritjoslām */
     }
     *,*::before,*::after{ box-sizing:inherit; }
 
-    /* Izkārtojums: 2 rindas – video (1fr) + josla (auto) */
-    body{
-      display:grid;
-      grid-template-rows: 1fr auto;   /* video augšā, josla apakšā */
-      grid-template-columns: 100%;
-      min-height:100%;                 /* svarīgi: balstāmies uz % nevis vh */
-    }
-
-    /* Video rinda: nekādi fixed augstumi/calc; Grid pats atstāj vietu joslai */
-    .stage{
-      min-height:0;                    /* nepieļauj “satura izstumšanu” */
-      position:relative;
-      background:#000;
-      contain:content;
-      cursor:none;                     /* kioska režīms */
-      touch-action:none;
-    }
-
-    video{
-      width:100%;
-      height:100%;
-      object-fit:cover;                /* aizpilda visu piešķirto rāmi */
-      display:block;
-      background:#000;
-      backface-visibility:hidden;
-      will-change:transform;
-    }
-
-    /* Apakšējā josla – PLŪSMĀ (NE fixed) */
-    .bar{
-      position:static;                 /* garantēti nav fixed */
-      height:var(--bar);
-      padding:10px 16px;
-      background:#0b1220;
-      border-top:1px solid rgba(255,255,255,.08);
-
-      display:grid;
-      grid-template-columns:300px 1fr 320px;
-      gap:16px;
-      align-items:center;
-      z-index:auto;
-    }
-
+    /* tipogrāfija/komponenti – paliek kā bija */
     .time{font-weight:700;font-size:28px;line-height:1}
     .date{font-size:14px;color:var(--muted)}
-
     .ticker{position:relative;overflow:hidden;white-space:nowrap;height:100%}
     .track{
       position:absolute;display:inline-block;white-space:nowrap;
-      animation:scroll var(--speed) linear infinite;
-      font-size:20px;
-      will-change:transform;
+      animation:scroll var(--speed) linear infinite; font-size:20px; will-change:transform;
     }
     @keyframes scroll{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
     .ticker strong{color:var(--acc)}
@@ -82,17 +37,11 @@
       .ticker{ overflow:visible; }
     }
 
-    .weather{
-      display:grid;grid-template-columns:56px 1fr;
-      align-items:center;gap:12px;justify-self:end
-    }
+    .weather{display:grid;grid-template-columns:56px 1fr;align-items:center;gap:12px;justify-self:end}
     .temp{font-size:26px;font-weight:700}
     .desc{font-size:14px;color:var(--muted);text-transform:capitalize}
-    .pill{
-      display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08);
-      font-size:12px;margin-left:8px;color:var(--muted)
-    }
-
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.08);
+      font-size:12px;margin-left:8px;color:var(--muted)}
     @media(max-width:900px){
       .bar{grid-template-columns:1fr; height:auto}
       .weather{justify-self:start; margin-top:8px}
@@ -100,14 +49,35 @@
     }
   </style>
 </head>
-<body>
-  <!-- RINDA #1: VIDEO -->
-  <div class="stage">
-    <video id="player" autoplay muted playsinline></video>
+
+<!-- ENFORCERS: body grid 1fr/auto ar inline !important -->
+<body style="
+  display:grid !important;
+  grid-template-rows:1fr auto !important;
+  grid-template-columns:100%;
+  height:100% !important; min-height:100% !important; width:100% !important;
+  background:#000;
+">
+  <!-- RINDA #1 (1fr): VIDEO KONTEINERS -->
+  <div class="stage" style="
+    min-height:0 !important;            /* ļauj 1fr strādāt bez overflow */
+    height:auto !important;             /* atceļ jebkādu calc(100vh-...) */
+    position:relative; background:#000; contain:content;
+    cursor:none; touch-action:none;
+  ">
+    <video id="player" autoplay muted playsinline style="
+      width:100% !important; height:100% !important; object-fit:cover !important; display:block; background:#000;
+      backface-visibility:hidden; will-change:transform;
+    "></video>
   </div>
 
-  <!-- RINDA #2: APAKŠĒJĀ JOSLA -->
-  <div class="bar">
+  <!-- RINDA #2 (auto): APAKŠĒJĀ JOSLA – NE fixed -->
+  <div class="bar" style="
+    position:static !important; z-index:auto !important;  /* kritiski: NE fixed */
+    height:var(--bar); padding:10px 16px; background:#0b1220;
+    border-top:1px solid rgba(255,255,255,.08);
+    display:grid; grid-template-columns:300px 1fr 320px; gap:16px; align-items:center;
+  ">
     <div>
       <div class="time" id="t">--:--</div>
       <div class="date" id="d">—</div>
@@ -126,7 +96,7 @@
 
 <script>
 /* ==================== IESTATĪJUMI ==================== */
-/* Video nosaukumus atstāju tieši tādus, kā iedevi */
+/* Failu nosaukumi – saglabāti 1:1 */
 const PLAYLIST = [
   "video2.mp4",
   "DermatoloÄ£ija.mp4",
@@ -153,20 +123,16 @@ clock(); setInterval(clock, 1000);
 /* ==================== VIDEO PLEJLISTE ==================== */
 (function initVideo(){
   const v = document.getElementById('player'); let i = 0;
-
   function ensureFill(){ v.style.width='100%'; v.style.height='100%'; }
-
   function play(k){
     if(!PLAYLIST.length) return;
     i = k % PLAYLIST.length;
-    v.pause();
-    v.removeAttribute('src'); v.load();
+    v.pause(); v.removeAttribute('src'); v.load();
     v.src = PLAYLIST[i];
     const onMeta = () => { ensureFill(); v.play().catch(()=>{}); v.removeEventListener('loadedmetadata', onMeta); };
     v.addEventListener('loadedmetadata', onMeta);
     v.load();
   }
-
   ['ended','stalled','error'].forEach(e => v.addEventListener(e, () => play(i+1)));
   play(0);
 })();
